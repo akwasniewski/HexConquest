@@ -1,25 +1,6 @@
-[gd_scene load_steps=3 format=2]
+[gd_scene load_steps=2 format=2]
 
 [ext_resource path="res://Client.cs" type="Script" id=1]
-[ext_resource path="res://SendMessage.cs" type="Script" id=2]
 
 [node name="Server" type="Node"]
 script = ExtResource( 1 )
-
-[node name="LineEdit" type="LineEdit" parent="."]
-anchor_right = 0.629
-anchor_bottom = 0.537
-margin_left = 367.0
-margin_top = 131.0
-margin_right = 66.904
-margin_bottom = -50.2
-align = 1
-script = ExtResource( 2 )
-
-[node name="Label" type="Label" parent="LineEdit"]
-margin_left = 37.0
-margin_top = 267.0
-margin_right = 268.0
-margin_bottom = 460.0
-text = "Send"
-align = 1
