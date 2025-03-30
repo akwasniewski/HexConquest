@@ -103,8 +103,9 @@ async fn handle_socket(mut socket: WebSocket, who: SocketAddr, game: Arc<Mutex<G
         return;
     }
     if let Some(msg) = socket.recv().await {
+        let game = Arc::clone(&game);
         if let Ok(msg) = msg {
-            if process_message(msg, who).is_break() {
+            if process_message(msg, who, game.clone()).await.is_break() {
                 return;
             }
         } else {
@@ -117,9 +118,10 @@ async fn handle_socket(mut socket: WebSocket, who: SocketAddr, game: Arc<Mutex<G
     let (sender, mut receiver) = socket.split();
     let mut game_lock = game.lock().await;
     let username = "username";
-    let player = Player::new(username.to_string(), sender);
+    let player_id = game_lock.player_count().await;
+    let player = Player::new(player_id,username.to_string(), sender);
     game_lock.add_player(player).await;
-    game_lock.broadcast(format!("New player {:?} has joined", username).as_str()).await;
+    game_lock.broadcast(format!("New player {:?}, {:?} has joined",player_id, username).as_str()).await;
     drop(game_lock);
     // Spawn a task that will push several messages to the client (does not matter what client does)
     // let mut send_task = tokio::spawn(async move {
@@ -149,27 +151,35 @@ async fn handle_socket(mut socket: WebSocket, who: SocketAddr, game: Arc<Mutex<G
     // });
 
     // This second task will receive messages from client and print them on server console
-    let mut recv_task = tokio::spawn(async move {
-        while let Some(Ok(msg)) = receiver.next().await {
-            // print message and break if instructed to do so
-            if process_message(msg, who).is_break() {
-                break;
+    let mut recv_task = tokio::spawn({
+    let game= Arc::clone(&game);
+        async move {
+            while let Some(Ok(msg)) = receiver.next().await {
+                // print message and break if instructed to do so
+                if process_message(msg, who, game.clone()).await.is_break() {
+                    break;
+                }
             }
         }
     });
     let _ = recv_task.await;
     // returning from the handler closes the websocket connection
-    println!("Websocket context {who} destroyed");
+    let mut game_lock = game.lock().await;
+    game_lock.disconnect_player(player_id).await;
 }
 
 /// helper to print contents of messages to stdout. Has special treatment for Close.
-fn process_message(msg: Message, who: SocketAddr) -> ControlFlow<(), ()> {
+async fn process_message(msg: Message, who: SocketAddr, game: Arc<Mutex<Game>>) -> ControlFlow<(), ()> {
     match msg {
         Message::Text(t) => {
             println!(">>> {who} sent str: {t:?}");
+            let mut game_lock = game.lock().await;
+            game_lock.broadcast(t.as_str()).await;
         }
         Message::Binary(d) => {
             println!(">>> {} sent {} bytes: {:?}", who, d.len(), d);
+            let mut game_lock = game.lock().await;
+            game_lock.broadcast(format!("Player sent {:?}", d).as_str()).await;
         }
         Message::Close(c) => {
             if let Some(cf) = c {
@@ -182,13 +192,9 @@ fn process_message(msg: Message, who: SocketAddr) -> ControlFlow<(), ()> {
             }
             return ControlFlow::Break(());
         }
-
         Message::Pong(v) => {
             println!(">>> {who} sent pong with {v:?}");
         }
-        // You should never need to manually handle Message::Ping, as axum's websocket library
-        // will do so for you automagically by replying with Pong and copying the v according to
-        // spec. But if you need the contents of the pings you can see them here.
         Message::Ping(v) => {
             println!(">>> {who} sent ping with {v:?}");
         }

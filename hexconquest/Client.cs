@@ -57,4 +57,19 @@ public class Client : Node
 		// Poll the WebSocket to handle connection and communication.
 		_client.Poll();
 	}
+
+  public void SendMessage(string message)
+  {
+	var peer = _client.GetPeer(1);
+	if (peer != null)
+	{
+	  byte[] data = Encoding.UTF8.GetBytes(message);
+	  peer.PutPacket(data);
+	  GD.Print("Sent: " + message);
+	}
+	else
+	{
+	  GD.Print("WebSocket peer is not ready.");
+	}
+  }
 }
