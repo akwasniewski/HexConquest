@@ -5,7 +5,7 @@ public override void _Ready()
 {
 	var button = new Button();
 	button.Text = "Click me";
-	button.Pressed += ButtonPressed;
+	button.Connect("pressed", this, nameof(ButtonPressed));
 	AddChild(button);
 }
 
