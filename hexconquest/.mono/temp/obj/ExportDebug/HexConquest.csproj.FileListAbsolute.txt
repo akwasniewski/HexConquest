@@ -1,8 +1,0 @@
-/Users/andrzej/Documents/Studia/3_zeta/37_hexconquest/hexconquest/.mono/temp/bin/ExportDebug/HexConquest.dll
-/Users/andrzej/Documents/Studia/3_zeta/37_hexconquest/hexconquest/.mono/temp/bin/ExportDebug/HexConquest.pdb
-/Users/andrzej/Documents/Studia/3_zeta/37_hexconquest/hexconquest/.mono/temp/obj/ExportDebug/HexConquest.csprojAssemblyReference.cache
-/Users/andrzej/Documents/Studia/3_zeta/37_hexconquest/hexconquest/.mono/temp/obj/ExportDebug/HexConquest.AssemblyInfoInputs.cache
-/Users/andrzej/Documents/Studia/3_zeta/37_hexconquest/hexconquest/.mono/temp/obj/ExportDebug/HexConquest.AssemblyInfo.cs
-/Users/andrzej/Documents/Studia/3_zeta/37_hexconquest/hexconquest/.mono/temp/obj/ExportDebug/HexConquest.csproj.CoreCompileInputs.cache
-/Users/andrzej/Documents/Studia/3_zeta/37_hexconquest/hexconquest/.mono/temp/obj/ExportDebug/HexConquest.dll
-/Users/andrzej/Documents/Studia/3_zeta/37_hexconquest/hexconquest/.mono/temp/obj/ExportDebug/HexConquest.pdb
