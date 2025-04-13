@@ -1,7 +1,8 @@
-[gd_scene load_steps=5 format=3 uid="uid://bxwe08iuu1slj"]
+[gd_scene load_steps=6 format=3 uid="uid://bxwe08iuu1slj"]
 
 [ext_resource type="Script" uid="uid://d4afvx70eakcm" path="res://scripts/world_gen.gd" id="1_syqki"]
 [ext_resource type="TileSet" uid="uid://c13vjht6g1pei" path="res://data/world_gen.tres" id="2_v8aan"]
+[ext_resource type="Script" uid="uid://bns07cl6vk23t" path="res://scenes/camera_2d.gd" id="3_ph3vs"]
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_syqki"]
 seed = 2
@@ -16,7 +17,8 @@ script = ExtResource("1_syqki")
 noise_height_text = SubResource("NoiseTexture2D_v8aan")
 
 [node name="TileMapLayer" type="TileMapLayer" parent="."]
+position = Vector2(-1, -1)
 tile_set = ExtResource("2_v8aan")
 
 [node name="Camera2D" type="Camera2D" parent="TileMapLayer"]
-zoom = Vector2(0.1, 0.1)
+script = ExtResource("3_ph3vs")
