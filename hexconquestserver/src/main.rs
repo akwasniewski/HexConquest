@@ -9,6 +9,8 @@ use axum_extra::TypedHeader;
 
 use std::ops::ControlFlow;
 use std::{net::SocketAddr, path::PathBuf};
+use std::collections::HashMap;
+use rand::{Rng, rng};
 use tower_http::{
     services::ServeDir,
     trace::{DefaultMakeSpan, TraceLayer},
@@ -31,6 +33,9 @@ mod logic;
 
 use logic::{Game,Player};
 
+mod messages; 
+use messages::{ClientMessage, ServerMessage};
+
 #[tokio::main]
 async fn main() {
     // Configure CORS
@@ -38,7 +43,7 @@ async fn main() {
         .allow_origin(Any) // Allows all origins (use .allow_origin("http://your-godot-game.com") for specific domains)
         .allow_methods(Any) // Allows all methods (GET, POST, etc.)
         .allow_headers(Any); // Allows all headers
-    let game:Arc<Mutex<Game>> = Arc::new(Mutex::new(Game::new(1)));
+    let games:Arc<Mutex<HashMap<u32, Arc<Mutex<Game>>>>> = Arc::new(Mutex::new(HashMap::new()));
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
@@ -53,7 +58,7 @@ async fn main() {
     // build our application with some routes
     let app = Router::new()
         .fallback_service(ServeDir::new(assets_dir).append_index_html_on_directories(true))
-        .route("/ws", any(|ws, user_agent, addr| {ws_handler(ws, user_agent, addr, game)}))
+        .route("/ws", any(|ws, user_agent, addr| {ws_handler(ws, user_agent, addr, games)}))
         // logging so we can see what's going on
         .layer(
             TraceLayer::new_for_http()
@@ -76,7 +81,7 @@ async fn ws_handler(
     ws: WebSocketUpgrade,
     user_agent: Option<TypedHeader<headers::UserAgent>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    game: Arc<Mutex<Game>>,
+    games: Arc<Mutex<HashMap<u32, Arc<Mutex<Game>>>>>,
 ) -> impl IntoResponse {
     let user_agent = if let Some(TypedHeader(user_agent)) = user_agent {
         user_agent.to_string()
@@ -86,11 +91,11 @@ async fn ws_handler(
     println!("`{user_agent}` at {addr} connected.");
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
-    ws.on_upgrade(move |socket| handle_socket(socket, addr, game))
+    ws.on_upgrade(move |socket| handle_socket(socket, addr, games))
 }
 
 /// Actual websocket statemachine (one will be spawned per connection)
-async fn handle_socket(mut socket: WebSocket, who: SocketAddr, game: Arc<Mutex<Game>>) {
+async fn handle_socket(mut socket: WebSocket, who: SocketAddr, games: Arc<Mutex<HashMap<u32, Arc<Mutex<Game>>>>>) {
     // send a ping (unsupported by some browsers) just to kick things off and get a response
     if socket
         .send(Message::Ping(Bytes::from_static(&[1, 2, 3])))
@@ -102,54 +107,92 @@ async fn handle_socket(mut socket: WebSocket, who: SocketAddr, game: Arc<Mutex<G
         println!("Could not send ping {who}!");
         return;
     }
-    if let Some(msg) = socket.recv().await {
-        let game = Arc::clone(&game);
-        if let Ok(msg) = msg {
-            if process_message(msg, 0, game.clone()).await.is_break() {
-                return;
-            }
-        } else {
-            println!("client {who} abruptly disconnected");
-            return;
-        }
-    }
 
     let (sender, mut receiver) = socket.split();
-    let mut game_lock = game.lock().await;
-    let username = "username";
-    let player_id = game_lock.player_count().await;
-    let player = Player::new(player_id,username.to_string(), sender);
-    game_lock.add_player(player).await;
-    game_lock.broadcast(format!("New player {:?}, {:?} has joined",player_id, username).as_str()).await;
-    drop(game_lock);
+    let player : Arc<Mutex<Player>> = Arc::new(Mutex::new(Player::new(sender)));
     let mut recv_task = tokio::spawn({
-    let game= Arc::clone(&game);
-        async move {
-            while let Some(Ok(msg)) = receiver.next().await {
-                // print message and break if instructed to do so
-                if process_message(msg, player_id, game.clone()).await.is_break() {
-                    break;
-                }
+    async move{
+        while let Some(Ok(msg)) = receiver.next().await {
+            if process_message(msg, player.clone(), games.clone()).await.is_break() {
+                break;
             }
         }
+    }
     });
     let _ = recv_task.await;
-    let mut game_lock = game.lock().await;
-    game_lock.disconnect_player(player_id).await;
 }
 
-async fn process_message(msg: Message, who: usize, game: Arc<Mutex<Game>>) -> ControlFlow<(), ()> {
+async fn process_message(msg: Message, player: Arc<Mutex<Player>>, games: Arc<Mutex<HashMap<u32, Arc<Mutex<Game>>>>>) -> ControlFlow<(), ()> {
+    let mut player_lock = player.lock().await;
+    let who = player_lock.username.clone().unwrap_or_else(|| "Unknown".to_string());
+    drop(player_lock);
     match msg {
         Message::Text(t) => {
-            println!(">>> {who} sent str: {t:?}");
-            let mut game_lock = game.lock().await;
-            game_lock.broadcast(t.as_str()).await;
+            match serde_json::from_str::<ClientMessage>(&t){
+                Ok(client_msg) => {
+                    match client_msg {
+                        ClientMessage::CreateGame { username } => {
+                            let game_id: u32 = rng().random();
+                            let mut games = games.lock().await;
+                            games.insert(game_id, Arc::new(Mutex::new(Game::new(game_id))));
+                            let game: Arc<Mutex<Game>> = games[&game_id].clone();
+                            drop(games);
+                            let mut game = game.lock().await;
+                            let player_id = game.add_player(player.clone()).await;
+                            let mut player = player.lock().await;
+                            player.set_credentials(username.clone(), player_id);
+                            player.send_message(&ServerMessage::GameCreated { player_id, game_id }).await.expect("failed to send message");
+                            drop(player);
+                            game.broadcast(ServerMessage::PlayerJoined { player_id, username: username.clone() }).await;
+                            drop(game);
+
+                            println!("Player {username} created a game with id {game_id}")
+                        }
+                        ClientMessage::JoinGame { username, game_id } => {
+                            let games = games.lock().await;
+                            match games.get(&game_id) {
+                                Some(game) => {
+                                    let mut game = game.lock().await;
+                                    let player_id: u32 = game.add_player(player.clone()).await;
+                                    let mut player = player.lock().await;
+                                    player.set_credentials(username.clone(), player_id);
+                                    player.send_message(&ServerMessage::GameJoined { player_id, game_id }).await.expect("failed to send message");
+                                    drop(player);
+                                    game.send_active_players(player_id).await;
+                                    game.broadcast(ServerMessage::PlayerJoined { player_id, username: username.clone() }).await;
+                                    drop(game);
+                                    println!("Player {username} joined game {game_id}");
+                                }
+                                None => {
+                                    let mut player = player.lock().await;
+                                    player.disconnect();
+                                    println!("Player {username} tried to join non-existing game {game_id}");
+                                }
+                            }
+                        }
+                        ClientMessage::StartGame { game_id } => {
+                            let games = games.lock().await;
+                            match games.get(&game_id) {
+                                Some(game) => {
+                                    println!("Game {game_id} started");
+                                    let mut game = game.lock().await;
+                                    let map_seed: u32 = rng().random();
+                                    game.broadcast(ServerMessage::StartGame { map_seed }).await;
+                                    drop(game);
+
+                                }
+                                None => {}
+                            }
+                        }
+                    }
+                }
+                Err(err) => {
+                    println!("Failed to parse message from {}: {:?}", who, err);
+                }
+
+            }
         }
-        Message::Binary(d) => {
-            println!(">>> Player {} sent {} bytes: {:?}", who, d.len(), d);
-            let mut game_lock = game.lock().await;
-            game_lock.broadcast(format!("Player {:?} sent {:?}", who, d).as_str()).await;
-        }
+        Message::Binary(_) => todo!(),
         Message::Close(c) => {
             if let Some(cf) = c {
                 println!(

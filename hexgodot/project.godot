@@ -11,9 +11,13 @@ config_version=5
 [application]
 
 config/name="hexgodot"
-run/main_scene="uid://bxwe08iuu1slj"
+run/main_scene="uid://ckhrj1kbj4drn"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 config/icon="res://icon.svg"
+
+[autoload]
+
+Client="*res://scripts/client.gd"
 
 [dotnet]
 

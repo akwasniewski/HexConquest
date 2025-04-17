@@ -1,57 +1,89 @@
-use std::sync::Arc;
+use std::sync::{Arc, MutexGuard};
 use axum::Error;
 use axum::extract::ws::{Message, WebSocket};
 use futures_util::SinkExt;
 use futures_util::stream::SplitSink;
 use tokio::sync::Mutex;
-
+use tracing::debug;
+use crate::messages::{ServerMessage, PlayerInfo};
 #[derive(Debug)]
 pub struct Player{
-    player_id: usize,
-    pub username: String,
+    player_id: Option<u32>,
+    pub username: Option<String>,
     sender: SplitSink<WebSocket, Message>,
     pub connected: bool,
 }
 #[derive(Debug)]
 pub struct Game{
-    game_id: usize,
-    players: Arc<Mutex<Vec<Player>>>
+    game_id: u32,
+    players: Arc<Mutex<Vec<Arc<Mutex<Player>>>>>,
 }
 impl Player{
-    pub fn new(id: usize, name: String, socket_sender: SplitSink<WebSocket, Message>) -> Self{
-        Self { player_id: id, username: name, sender: socket_sender, connected: true}
+    pub fn new(socket_sender: SplitSink<WebSocket, Message>) -> Self{
+        Self { player_id: None, username: None, sender: socket_sender, connected: true}
     }
-    pub async fn send_message(&mut self, message: &str) -> Result<(), Error> {
-        self.sender.send(Message::Text(message.into())).await
+    pub async fn send_message(&mut self, message: &ServerMessage) -> Result<(), Error> {
+            let message = serde_json::to_string(message).unwrap();
+            self.sender.send(Message::Text(message.into())).await
     }
     pub fn disconnect(&mut self){
         self.connected=false;
     }
+    pub fn set_credentials(&mut self, name: String, id: u32){
+        self.username=Some(name);
+        self.player_id=Some(id);
+    }
 }
 impl Game{
-    pub fn new(id: usize) -> Self{
+    pub fn new(id: u32) -> Self{
         Self { game_id: id, players: Arc::new(Mutex::new(Vec::new()))}
     }
-    pub async fn add_player(&mut self, player: Player){
+    pub async fn add_player(&mut self, player: Arc<Mutex<Player>>) -> u32{
         let mut players = self.players.lock().await;
         players.push(player);
+        return players.len() as u32 - 1;
     }
     pub async fn player_count(&mut self)->usize{
         let mut players = self.players.lock().await;
         players.len()
     }
-    pub async fn broadcast(&self, message: &str){
+    pub async fn broadcast(&self, message: ServerMessage){
         let mut players = self.players.lock().await;
         for player in players.iter_mut(){
+            let mut player = player.lock().await;
             if (player.connected) {
-                player.send_message(message).await.expect("failed to send message");
+                player.send_message(&message).await.expect("failed to send message");
             }
         }
     }
-    pub async fn disconnect_player(&mut self, player_id: usize){
+    pub async fn disconnect_player(&mut self, player_id: u32){
         let mut players = self.players.lock().await;
-        players[player_id].disconnect();
+        let mut player = players[player_id as usize].clone();
+        let mut player = player.lock().await;
         drop(players);
-        self.broadcast(format!("Player {} disconnected",player_id).as_str()).await;
+        player.disconnect();
+    }
+    pub async fn send_active_players(&self, player_id: u32) {
+        let players = self.players.lock().await; // lock the players vec
+        let mut players_info = Vec::new();
+
+        for player in players.iter() {
+            let player = player.lock().await; // lock each player individually
+            players_info.push(PlayerInfo {
+                player_id: player.player_id.unwrap(),
+                username: player.username.clone().unwrap(),
+            });
+        }
+        drop(players);
+        self.send_message_to_player(ServerMessage::ActivePlayersList { players: players_info },
+            player_id,
+        ).await;
+    }
+
+    pub async fn send_message_to_player(&self, message: ServerMessage, player_id: u32){
+        let players = self.players.lock().await;
+        let player:Arc<Mutex<Player>>=players[player_id as usize].clone();
+        let mut player =player.lock().await;
+        player.send_message(&message).await.unwrap()
     }
 }

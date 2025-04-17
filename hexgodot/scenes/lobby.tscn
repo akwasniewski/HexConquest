@@ -1,0 +1,39 @@
+[gd_scene load_steps=2 format=3 uid="uid://cw5mkipjeji1r"]
+
+[ext_resource type="Script" uid="uid://cjynypc51etp0" path="res://scripts/lobby.gd" id="1_o1atq"]
+
+[node name="Lobby" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 286.0
+offset_top = 206.0
+offset_right = 286.0
+offset_bottom = 206.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_o1atq")
+
+[node name="PlayersList" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 294.0
+offset_top = 141.0
+offset_right = 334.0
+offset_bottom = 181.0
+
+[node name="GameIdLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 202.0
+offset_top = 43.0
+offset_right = 242.0
+offset_bottom = 66.0
+
+[node name="StartGameButton" type="Button" parent="."]
+layout_mode = 0
+offset_left = 137.0
+offset_top = 348.0
+offset_right = 454.0
+offset_bottom = 409.0
+text = "Start Game
+"
