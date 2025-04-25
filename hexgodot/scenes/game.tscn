@@ -1,7 +1,7 @@
-[gd_scene load_steps=6 format=3 uid="uid://bxwe08iuu1slj"]
+[gd_scene load_steps=8 format=3 uid="uid://bxwe08iuu1slj"]
 
 [ext_resource type="Script" uid="uid://d4afvx70eakcm" path="res://scripts/world_gen.gd" id="1_lnu2h"]
-[ext_resource type="TileSet" uid="uid://c13vjht6g1pei" path="res://data/world_gen.tres" id="2_lbhrr"]
+[ext_resource type="Texture2D" uid="uid://bpu0ujtpaq80h" path="res://assets/tiles/tile_basic.png" id="2_lnu2h"]
 [ext_resource type="Script" uid="uid://bns07cl6vk23t" path="res://scenes/camera_2d.gd" id="3_iywne"]
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_syqki"]
@@ -12,13 +12,37 @@ frequency = 0.0701
 as_normal_map = true
 noise = SubResource("FastNoiseLite_syqki")
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lbhrr"]
+texture = ExtResource("2_lnu2h")
+texture_region_size = Vector2i(101, 113)
+0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+3:0/0 = 0
+4:0/0 = 0
+1:1/0 = 0
+0:1/0 = 0
+2:1/0 = 0
+3:1/0 = 0
+4:1/0 = 0
+0:2/0 = 0
+1:2/0 = 0
+2:2/0 = 0
+3:2/0 = 0
+4:2/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_iywne"]
+tile_shape = 3
+tile_size = Vector2i(100, 111)
+sources/0 = SubResource("TileSetAtlasSource_lbhrr")
+
 [node name="world_gen" type="Node2D"]
 script = ExtResource("1_lnu2h")
 noise_height_text = SubResource("NoiseTexture2D_v8aan")
 
 [node name="TileMapLayer" type="TileMapLayer" parent="."]
 position = Vector2(-1, -1)
-tile_set = ExtResource("2_lbhrr")
+tile_set = SubResource("TileSet_iywne")
 
 [node name="Camera2D" type="Camera2D" parent="TileMapLayer"]
 script = ExtResource("3_iywne")
