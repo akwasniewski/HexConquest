@@ -6,7 +6,7 @@ use axum::{
     Router,
 };
 use axum_extra::TypedHeader;
-
+use tokio_util::sync::CancellationToken;
 use std::ops::ControlFlow;
 use std::{net::SocketAddr, path::PathBuf};
 use std::collections::HashMap;
@@ -28,6 +28,8 @@ use futures::{sink::SinkExt, stream::StreamExt};
 
 use tokio::sync::Mutex;
 use std::sync::Arc;
+use std::time::Duration;
+use tokio::time::sleep;
 
 mod logic;
 
@@ -109,15 +111,25 @@ async fn handle_socket(mut socket: WebSocket, who: SocketAddr, games: Arc<Mutex<
     }
 
     let (sender, mut receiver) = socket.split();
-    let player : Arc<Mutex<Player>> = Arc::new(Mutex::new(Player::new(sender)));
+    let cancel_token = CancellationToken::new();
+    let recv_token = cancel_token.clone();
+    let player : Arc<Mutex<Player>> = Arc::new(Mutex::new(Player::new(sender,cancel_token)));
+
     let mut recv_task = tokio::spawn({
-    async move{
-        while let Some(Ok(msg)) = receiver.next().await {
-            if process_message(msg, player.clone(), games.clone()).await.is_break() {
-                break;
+        async move {
+            tokio::select! {
+            _ = recv_token.cancelled() => {
+                println!("Receive task was cancelled!");
             }
+            _ = async {
+                while let Some(Ok(msg)) = receiver.next().await {
+                    if process_message(msg, player.clone(), games.clone()).await.is_break() {
+                        break;
+                    }
+                }
+            } => {}
         }
-    }
+        }
     });
     let _ = recv_task.await;
 }
@@ -177,12 +189,11 @@ async fn process_message(msg: Message, player: Arc<Mutex<Player>>, games: Arc<Mu
                             let games = games.lock().await;
                             match games.get(&game_id) {
                                 Some(game) => {
-                                    println!("Game {game_id} started");
                                     let mut game = game.lock().await;
                                     let map_seed: u32 = rng().random();
                                     game.broadcast(ServerMessage::StartGame { map_seed }).await;
                                     drop(game);
-
+                                    println!("Game {game_id} started");
                                 }
                                 None => {}
                             }

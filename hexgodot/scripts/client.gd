@@ -92,6 +92,7 @@ func handle_message(raw: String):
 				print("player joined #%s, #%s", pid, username)
 			players_updated.emit()
 		"StartGame":
+			print("game started")
 			map_seed = payload.get("map_seed", -1)
 			get_tree().change_scene_to_file("res://scenes/game.tscn")
 		"Error":
@@ -133,7 +134,7 @@ func join_game(username: String, game_id: int):
 	connect_to_server(message)
 
 func start_game():
-	print("starting game")
+	print("starting game %s", game_id)
 	var message = {
 		"type": "StartGame",
 		"payload": {
