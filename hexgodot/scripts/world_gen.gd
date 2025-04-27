@@ -22,7 +22,7 @@ var noise_arr = []
 func _ready():
 	randomize()
 	noise = noise_height_text.noise
-	noise.seed = randi()
+	noise.seed = Client.map_seed;
 	generate_world()
 	place_structures()
 

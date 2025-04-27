@@ -144,7 +144,7 @@ async fn process_message(msg: Message, player: Arc<Mutex<Player>>, games: Arc<Mu
                 Ok(client_msg) => {
                     match client_msg {
                         ClientMessage::CreateGame { username } => {
-                            let game_id: u32 = rng().random();
+                            let game_id: u32 = rng().random_range(0..1000);
                             let mut games = games.lock().await;
                             games.insert(game_id, Arc::new(Mutex::new(Game::new(game_id))));
                             let game: Arc<Mutex<Game>> = games[&game_id].clone();
