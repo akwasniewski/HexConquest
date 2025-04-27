@@ -1,12 +1,12 @@
-[gd_scene load_steps=12 format=3 uid="uid://bxwe08iuu1slj"]
+[gd_scene load_steps=14 format=3 uid="uid://bxwe08iuu1slj"]
 
 [ext_resource type="Script" uid="uid://d4afvx70eakcm" path="res://scripts/world_gen.gd" id="1_lnu2h"]
 [ext_resource type="Texture2D" uid="uid://bpu0ujtpaq80h" path="res://assets/tiles/tile_basic.png" id="2_lnu2h"]
 [ext_resource type="Script" uid="uid://bns07cl6vk23t" path="res://scenes/camera_2d.gd" id="3_iywne"]
+[ext_resource type="Texture2D" uid="uid://dfja773udcy6w" path="res://icon.svg" id="4_iywne"]
+[ext_resource type="Script" uid="uid://ccxjsdtu2ufvh" path="res://scripts/units_tile_map_layer.gd" id="5_p57ef"]
 [ext_resource type="Script" uid="uid://bjuvgun563a6n" path="res://scripts/game_controller.gd" id="6_u5sy4"]
-[ext_resource type="Script" uid="uid://csug5g46mruop" path="res://scripts/units_layer.gd" id="7_0tnpc"]
 [ext_resource type="Script" uid="uid://dj642meauwcsl" path="res://scripts/unit_placer.gd" id="7_gee14"]
-[ext_resource type="PackedScene" uid="uid://cjebyc2wmgrtp" path="res://scenes/unit_display.tscn" id="8_gee14"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lbhrr"]
 texture = ExtResource("2_lnu2h")
@@ -32,6 +32,15 @@ tile_shape = 3
 tile_size = Vector2i(100, 111)
 sources/0 = SubResource("TileSetAtlasSource_lbhrr")
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_u5sy4"]
+texture = ExtResource("4_iywne")
+0:0/size_in_atlas = Vector2i(8, 8)
+0:0/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_gee14"]
+tile_shape = 3
+sources/1 = SubResource("TileSetAtlasSource_u5sy4")
+
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_syqki"]
 seed = 2
 frequency = 0.0701
@@ -49,6 +58,11 @@ tile_set = SubResource("TileSet_iywne")
 [node name="Camera2D" type="Camera2D" parent="TileMapLayer"]
 script = ExtResource("3_iywne")
 
+[node name="UnitsTileMapLayer" type="TileMapLayer" parent="."]
+z_index = 1
+tile_set = SubResource("TileSet_gee14")
+script = ExtResource("5_p57ef")
+
 [node name="GameController" type="Node2D" parent="."]
 script = ExtResource("6_u5sy4")
 
@@ -58,9 +72,3 @@ noise_height_text = SubResource("NoiseTexture2D_v8aan")
 
 [node name="UnitPlacer" type="Node2D" parent="."]
 script = ExtResource("7_gee14")
-
-[node name="UnitsLayer" type="Node2D" parent="."]
-script = ExtResource("7_0tnpc")
-
-[node name="UnitDisplay" parent="UnitsLayer" instance=ExtResource("8_gee14")]
-visible = false
