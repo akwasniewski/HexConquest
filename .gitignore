@@ -2,7 +2,8 @@ hexconquestserver/target
 .DS_Store
 # Godot 4+ specific ignores
 .godot/
-
+.idea
+hexgodot/build
 # Godot-specific ignores
 .import/
 export.cfg

@@ -5,7 +5,7 @@ var is_connected := false
 var pending_message: Dictionary = {}
 var player_id := -1
 var game_id := -1
-var map_seed := -1
+var map_seed := 2137
 var active_players: Array = []
 signal players_updated
 func _ready():
