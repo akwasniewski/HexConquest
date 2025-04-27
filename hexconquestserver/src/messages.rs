@@ -18,6 +18,7 @@ pub enum ServerMessage {
         players: Vec<PlayerInfo>,
     },
     StartGame{map_seed: u32},
+    Error { message: String },
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PlayerInfo {

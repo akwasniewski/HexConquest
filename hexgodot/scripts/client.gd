@@ -8,6 +8,7 @@ var game_id := -1
 var map_seed := -1
 var active_players: Array = []
 signal players_updated
+signal connection_failed
 func _ready():
 	set_process(true)
 
@@ -42,6 +43,7 @@ func connect_to_server(message_to_send: Dictionary):
 		var err = ws.connect_to_url("ws://localhost:7777/ws")
 		if err != OK:
 			push_error("Failed to connect to server")
+			connection_failed.emit()
 		else:
 			# Store the message to be sent after connection
 			pending_message = message_to_send
@@ -49,6 +51,7 @@ func connect_to_server(message_to_send: Dictionary):
 
 
 func handle_message(raw: String):
+	print("handling")
 	var json = JSON.new()
 	var result = json.parse(raw)
 	if result != OK:
@@ -93,6 +96,7 @@ func handle_message(raw: String):
 			get_tree().change_scene_to_file("res://scenes/game.tscn")
 		"Error":
 			var message = payload.get("message", "")
+			connection_failed.emit()
 			print("Server error: %s" % message)
 		_:
 			print("Unknown message type: ", msg_type)

@@ -165,6 +165,9 @@ async fn process_message(msg: Message, player: Arc<Mutex<Player>>, games: Arc<Mu
                                 }
                                 None => {
                                     let mut player = player.lock().await;
+                                    player.send_message(&ServerMessage::Error {
+                                        message: format!("Game {game_id} does not exist"),
+                                    }).await.expect("failed to send error message");
                                     player.disconnect();
                                     println!("Player {username} tried to join non-existing game {game_id}");
                                 }
