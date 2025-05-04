@@ -6,7 +6,6 @@ use axum::{
     Router,
 };
 use axum_extra::TypedHeader;
-
 use std::ops::ControlFlow;
 use std::{net::SocketAddr, path::PathBuf};
 use std::collections::HashMap;
@@ -110,22 +109,29 @@ async fn handle_socket(mut socket: WebSocket, who: SocketAddr, games: Arc<Mutex<
 
     let (sender, mut receiver) = socket.split();
     let player : Arc<Mutex<Player>> = Arc::new(Mutex::new(Player::new(sender)));
-    let mut recv_task = tokio::spawn({
+    let recv_task = tokio::spawn({
     async move{
+        let mut player_id: Option<u32>=None;
+        let mut game: Option<Arc<Mutex<Game>>>=None;
         while let Some(Ok(msg)) = receiver.next().await {
-            if process_message(msg, player.clone(), games.clone()).await.is_break() {
-                break;
+            match process_message(msg, player.clone(), games.clone(), game, player_id).await {
+                ControlFlow::Continue((new_game, new_player_id)) => {
+                    game=new_game;
+                    player_id=new_player_id;
+                }
+                ControlFlow::Break(()) => {
+                    break;
+                }
             }
-        }
+        } 
+
     }
     });
     let _ = recv_task.await;
 }
 
-async fn process_message(msg: Message, player: Arc<Mutex<Player>>, games: Arc<Mutex<HashMap<u32, Arc<Mutex<Game>>>>>) -> ControlFlow<(), ()> {
-    let mut player_lock = player.lock().await;
-    let who = player_lock.username.clone().unwrap_or_else(|| "Unknown".to_string());
-    drop(player_lock);
+async fn process_message(msg: Message, player: Arc<Mutex<Player>>, games: Arc<Mutex<HashMap<u32, Arc<Mutex<Game>>>>>, mut game:Option<Arc<Mutex<Game>>>, mut player_id:  Option<u32>) -> ControlFlow<(),(Option<Arc<Mutex<Game>>>, Option<u32>)> {
+    let who = player_id.unwrap_or(1);
     match msg {
         Message::Text(t) => {
             match serde_json::from_str::<ClientMessage>(&t){
@@ -135,10 +141,12 @@ async fn process_message(msg: Message, player: Arc<Mutex<Player>>, games: Arc<Mu
                             let game_id: u32 = rng().random_range(0..1000);
                             let mut games = games.lock().await;
                             games.insert(game_id, Arc::new(Mutex::new(Game::new(game_id))));
-                            let game: Arc<Mutex<Game>> = games[&game_id].clone();
+                            game= Some(games[&game_id].clone());
+                            let game=game.clone().unwrap();
                             drop(games);
                             let mut game = game.lock().await;
-                            let player_id = game.add_player(player.clone()).await;
+                            player_id = Some(game.add_player(player.clone()).await);
+                            let player_id = player_id.unwrap();
                             let mut player = player.lock().await;
                             player.set_credentials(username.clone(), player_id);
                             player.send_message(&ServerMessage::GameCreated { player_id, game_id }).await.expect("failed to send message");
@@ -151,7 +159,9 @@ async fn process_message(msg: Message, player: Arc<Mutex<Player>>, games: Arc<Mu
                         ClientMessage::JoinGame { username, game_id } => {
                             let games = games.lock().await;
                             match games.get(&game_id) {
-                                Some(game) => {
+                                Some(new_game) => {
+                                    game = Some(new_game.clone());
+                                    let game = game.clone().unwrap();
                                     let mut game = game.lock().await;
                                     let player_id: u32 = game.add_player(player.clone()).await;
                                     let mut player = player.lock().await;
@@ -170,19 +180,24 @@ async fn process_message(msg: Message, player: Arc<Mutex<Player>>, games: Arc<Mu
                                 }
                             }
                         }
-                        ClientMessage::StartGame { game_id } => {
-                            let games = games.lock().await;
-                            match games.get(&game_id) {
-                                Some(game) => {
-                                    println!("Game {game_id} started");
-                                    let mut game = game.lock().await;
-                                    let map_seed: u32 = rng().random();
-                                    game.broadcast(ServerMessage::StartGame { map_seed }).await;
-                                    drop(game);
-
-                                }
-                                None => {}
-                            }
+                        ClientMessage::StartGame => {
+                            let game = game.clone().unwrap();
+                            let game = game.lock().await;
+                            let map_seed: u32 = rng().random();
+                            game.broadcast(ServerMessage::StartGame { map_seed }).await;
+                            println!("Game {:?} started", game.game_id);
+                        }                        
+                        ClientMessage::AddUnit { position_x, position_y} => {
+                            let game = game.clone().unwrap();
+                            let mut game = game.lock().await;
+                            let player_id = player_id.unwrap();
+                            game.add_unit(player_id, (position_x, position_y)).await;
+                        }
+                        ClientMessage::MoveUnit { unit_id, position_x, position_y } => {
+                            let game = game.clone().unwrap();
+                            let game = game.lock().await;
+                            let player_id = player_id.unwrap();
+                            game.move_unit(player_id, unit_id, (position_x, position_y)).await;
                         }
                     }
                 }
@@ -211,5 +226,5 @@ async fn process_message(msg: Message, player: Arc<Mutex<Player>>, games: Arc<Mu
             println!(">>> {who} sent ping with {v:?}");
         }
     }
-    ControlFlow::Continue(())
+    ControlFlow::Continue((game, player_id))
 }

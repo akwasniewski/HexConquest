@@ -132,8 +132,5 @@ func start_game():
 	print("starting game")
 	var message = {
 		"type": "StartGame",
-		"payload": {
-			"game_id": game_id
-		}
 	}
 	send(message)
