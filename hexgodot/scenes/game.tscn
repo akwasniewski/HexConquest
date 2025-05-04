@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://bxwe08iuu1slj"]
+[gd_scene load_steps=13 format=3 uid="uid://bxwe08iuu1slj"]
 
 [ext_resource type="Script" uid="uid://d4afvx70eakcm" path="res://scripts/world_gen.gd" id="1_lnu2h"]
 [ext_resource type="Texture2D" uid="uid://bpu0ujtpaq80h" path="res://assets/tiles/tile_basic.png" id="2_lnu2h"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://bjuvgun563a6n" path="res://scripts/game_controller.gd" id="6_u5sy4"]
 [ext_resource type="Script" uid="uid://csug5g46mruop" path="res://scripts/units_layer.gd" id="7_0tnpc"]
 [ext_resource type="Script" uid="uid://dj642meauwcsl" path="res://scripts/unit_placer.gd" id="7_gee14"]
+[ext_resource type="Script" uid="uid://cyun1sokappos" path="res://scripts/gameplay.gd" id="8_0tnpc"]
 [ext_resource type="PackedScene" uid="uid://cjebyc2wmgrtp" path="res://scenes/unit_display.tscn" id="8_gee14"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lbhrr"]
@@ -64,3 +65,6 @@ script = ExtResource("7_0tnpc")
 
 [node name="UnitDisplay" parent="UnitsLayer" instance=ExtResource("8_gee14")]
 visible = false
+
+[node name="Gameplay" type="Node2D" parent="."]
+script = ExtResource("8_0tnpc")

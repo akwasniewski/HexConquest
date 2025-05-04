@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://cjebyc2wmgrtp"]
 
-[ext_resource type="Script" uid="uid://c3b3d8qweupqt" path="res://scripts/unit_display.gd" id="1_8vpvh"]
+[ext_resource type="Script" uid="uid://c3b3d8qweupqt" path="res://scripts/unit.gd" id="1_8vpvh"]
 [ext_resource type="Texture2D" uid="uid://hbrhrch0u852" path="res://assets/units/tank.png" id="2_8vpvh"]
 
 [node name="UnitDisplay" type="Node2D"]
@@ -10,7 +10,7 @@ script = ExtResource("1_8vpvh")
 scale = Vector2(0.2, 0.2)
 texture = ExtResource("2_8vpvh")
 
-[node name="Label" type="Label" parent="."]
+[node name="CountLabel" type="Label" parent="."]
 offset_right = 40.0
 offset_bottom = 23.0
 scale = Vector2(2, 2)

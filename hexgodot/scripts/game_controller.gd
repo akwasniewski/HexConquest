@@ -2,6 +2,7 @@ extends Node2D
 
 @onready var unit_placer = get_node("../UnitPlacer")
 @onready var world_gen= get_node("../WorldGen")
+@onready var gameplay= get_node("../Gameplay")
 
 # entry point
 func _ready():
@@ -16,5 +17,5 @@ func _on_world_generated():
 	
 
 func _on_placement_finished():
-	#start_gameplay_phase()
+	gameplay.start_game()
 	pass
