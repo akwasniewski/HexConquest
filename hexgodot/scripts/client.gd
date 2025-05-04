@@ -95,16 +95,16 @@ func handle_message(raw: String):
 		"AddUnit":
 			var units_layer =  get_tree().get_root().get_node("game/UnitsLayer")
 			var pid = payload.get("player_id")
-			var unit_id = payload.get("unit_id")
 			var position_x = payload.get("position_x")
 			var position_y = payload.get("position_y")
-			units_layer.add_unit_at(pid, unit_id, Vector2i(position_x, position_y), DEFAULT_COUNT_OF_UNIT)
+			units_layer.add_unit_at(pid, Vector2i(position_x, position_y), DEFAULT_COUNT_OF_UNIT)
 		"MoveUnit":
 			var units_layer =  get_tree().get_root().get_node("game/UnitsLayer")
-			var unit_id = payload.get("unit_id")
-			var position_x = payload.get("position_x")
-			var position_y = payload.get("position_y")
-			units_layer.move_unit(unit_id, Vector2i(position_x, position_y))
+			var from_position_x = payload.get("from_position_x")
+			var from_position_y = payload.get("from_position_y")
+			var to_position_x = payload.get("to_position_x")
+			var to_position_y = payload.get("to_position_y")
+			units_layer.move_unit(Vector2i(from_position_x, from_position_y), Vector2i(to_position_x, to_position_y))
 		"Error":
 			var message = payload.get("message", "")
 			print("Server error: %s" % message)
@@ -154,18 +154,20 @@ func add_unit(position: Vector2i):
 		"type": "AddUnit",
 		"payload": {
 			"position_x": position.x,
-			"position_y": position.y
+			"position_y": position.y,
+			"count": DEFAULT_COUNT_OF_UNIT
 		}
 	}
 	send(message)
 
-func move_unit(unit_id: int, position: Vector2i):
+func move_unit(from_position: Vector2i, to_position: Vector2i):
 	var message = {
 		"type": "MoveUnit",
 		"payload": {
-			"unit_id": unit_id,
-			"position_x": position.x,
-			"position_y": position.y
+			"from_position_x": from_position.x,
+			"from_position_y": from_position.y,
+			"to_position_x": to_position.x,
+			"to_position_y": to_position.y,
 		}
 	}
 	send(message)

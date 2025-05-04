@@ -188,18 +188,23 @@ async fn process_message(msg: Message, player: Arc<Mutex<Player>>, games: Arc<Mu
                             game.broadcast(ServerMessage::StartGame { map_seed }).await;
                             println!("Game {:?} started", game.game_id);
                         }                        
-                        ClientMessage::AddUnit { position_x, position_y} => {
+                        ClientMessage::AddUnit {position_x, position_y, count} => {
                             let game = game.clone().unwrap();
                             let mut game = game.lock().await;
                             let player_id = player_id.unwrap();
-                            game.add_unit(player_id, (position_x, position_y)).await;
+                            game.add_unit(player_id, (position_x, position_y), count).await;
                             println!("{who} added a unit at {position_x}, {position_y}");
                         }
-                        ClientMessage::MoveUnit { unit_id, position_x, position_y } => {
+                        ClientMessage::MoveUnit {from_position_x, from_position_y, to_position_x, to_position_y } => {
                             let game = game.clone().unwrap();
                             let game = game.lock().await;
                             let player_id = player_id.unwrap();
-                            game.move_unit(player_id, unit_id, (position_x, position_y)).await;
+                            match game.move_unit(player_id, (from_position_x, from_position_y), (to_position_x, to_position_y)).await{
+                                Ok(()) => {}
+                                Err(err) => {
+                                    eprintln!("Error: {:?}", err);
+                                }
+                            } 
                         }
                     }
                 }

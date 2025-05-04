@@ -8,12 +8,11 @@ var units_at_pos := {}
 @onready var tile_map = get_node("../TileMapLayer")
 
 
-func add_unit_at(player_id:int, unit_id: int, tile_pos: Vector2i, count: int):
+func add_unit_at(player_id:int, tile_pos: Vector2i, count: int):
 	print("player added")
 	var unit = unit_scene.instantiate()
 	unit.set_position(tile_map.map_to_local(tile_pos))
 	unit.set_player_id(player_id)
-	unit.set_id(unit_id)
 	add_child(unit)
 	unit.set_count(count)
 	units_at_pos[tile_pos] = unit
@@ -61,8 +60,18 @@ func can_move_unit(unit, dest: Vector2i):
 	var dest_is_on_map = true #TODO
 	var dist_ok = hex_dist(source, dest) <= UNIT_RANGE
 	return (source_is_on_map and dest_is_on_map and dist_ok)
-func move_unit(unit_id: int, dest: Vector2i):
-	var unit = get_unit(unit_id)
-	units_at_pos.erase(tile_map.local_to_map(unit.get_position()))
-	unit.set_position(tile_map.map_to_local(dest))
-	units_at_pos[dest] = unit
+
+func move_unit(source: Vector2i, dest: Vector2i):
+	var source_unit = get_unit_at(source)
+	var dest_unit = get_unit_at(dest)
+	if dest_unit == null:
+		var unit = get_unit_at(source)
+		units_at_pos.erase(tile_map.local_to_map(unit.get_position()))
+		unit.set_position(tile_map.map_to_local(dest))
+		units_at_pos[dest] = unit
+	else:
+		if source_unit.get_player_id() == dest_unit.get_player_id():
+			dest_unit.add_count_from(source_unit)
+			remove_unit(source_unit)
+		else:
+			pass #TODO

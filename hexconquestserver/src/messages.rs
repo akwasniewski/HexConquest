@@ -6,8 +6,8 @@ pub enum ClientMessage {
     JoinGame { username: String, game_id: u32 },
     CreateGame {username: String},
     StartGame,
-    AddUnit{position_x: i32, position_y: i32},
-    MoveUnit{unit_id: u32, position_x: i32, position_y: i32},
+    AddUnit{position_x: i32, position_y: i32, count: u32},
+    MoveUnit{from_position_x: i32, from_position_y: i32, to_position_x: i32, to_position_y: i32},
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -20,8 +20,8 @@ pub enum ServerMessage {
         players: Vec<PlayerInfo>,
     },
     StartGame{map_seed: u32},
-    AddUnit{player_id: u32, unit_id: u32, position_x: i32, position_y: i32},
-    MoveUnit{unit_id: u32, position_x: i32, position_y: i32},
+    AddUnit{player_id: u32, position_x: i32, position_y: i32},
+    MoveUnit{from_position_x: i32, from_position_y: i32, to_position_x: i32, to_position_y: i32},
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PlayerInfo {

@@ -18,11 +18,12 @@ pub struct Player{
     pub username: Option<String>,
     sender: SplitSink<WebSocket, Message>,
     pub connected: bool,
-    units: Arc<Mutex<HashMap<u32, Arc<Mutex<Unit>>>>>,
+    units: Arc<Mutex<HashMap<(i32,i32), Arc<Mutex<Unit>>>>>,
 }
 #[derive(Debug)]
 pub struct Unit{
     position: (i32, i32),
+    count: u32,
 }
 impl Player{
     pub fn new(socket_sender: SplitSink<WebSocket, Message>) -> Self{
@@ -92,32 +93,41 @@ impl Game{
         let mut player =player.lock().await;
         player.send_message(&message).await.unwrap()
     }
-    pub async fn add_unit(&mut self, player_id: u32, position: (i32, i32)){
-        let unit_id = self.unit_count;
+    pub async fn add_unit(&mut self, player_id: u32, position: (i32, i32), count: u32){
         {
             let players = self.players.lock().await;
             let player: Arc<Mutex<Player>>=players[player_id as usize].clone();
             let player =player.lock().await;
             let mut units = player.units.lock().await;
-            self.unit_count+=1;
-            units.insert(unit_id, Arc::new(Mutex::new(Unit::new(position))));
+            units.insert(position, Arc::new(Mutex::new(Unit::new(position, count))));
         }
-        self.broadcast(ServerMessage::AddUnit{player_id, unit_id, position_x: position.0, position_y: position.1}).await;
+        self.broadcast(ServerMessage::AddUnit{player_id, position_x: position.0, position_y: position.1}).await;
     }
-    pub async fn move_unit(&self, player_id: u32, unit_id: u32, position: (i32, i32)){
+    pub async fn move_unit(&self, player_id: u32, from_position: (i32, i32), to_position: (i32, i32))-> Result<(), &str>{
         {
             let players = self.players.lock().await;
-            let player: Arc<Mutex<Player>>=players[player_id as usize].clone();
-            let player =player.lock().await;
-            let units = player.units.lock().await;
-            let mut unit = units.get(&unit_id).expect("player does not have this unit").lock().await;
-            unit.position = position;
+            let player: Arc<Mutex<Player>> = players[player_id as usize].clone();
+            let player = player.lock().await;
+            let mut units = player.units.lock().await;
+
+            let Some(unit_arc) = units.remove(&from_position) else {return Err("unit not found")};
+            let mut unit = unit_arc.lock().await;
+            unit.position = to_position;
+
+            if let Some(existing_arc) = units.get(&to_position) {
+                let mut existing_unit = existing_arc.lock().await;
+                existing_unit.count += unit.count;
+            } else {
+                drop(unit);
+                units.insert(to_position, unit_arc);
+            }       
         }
-        self.broadcast(ServerMessage::MoveUnit{unit_id, position_x: position.0, position_y: position.1}).await;
+        self.broadcast(ServerMessage::MoveUnit{from_position_x: from_position.0, from_position_y: from_position.1, to_position_x: to_position.0, to_position_y: to_position.1}).await;
+        Ok(()) 
     }
 }
 impl Unit{
-    pub fn new(position: (i32, i32)) -> Self{
-        Self {position}
+    pub fn new(position: (i32, i32), count: u32) -> Self{
+        Self {position, count }
     }
 }
