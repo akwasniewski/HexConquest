@@ -2,7 +2,7 @@ extends Node2D
 
 @export var noise_height_text : NoiseTexture2D
 var noise : Noise
-@onready var tile_map = $TileMapLayer
+@onready var tile_map = get_node("../TileMapLayer")
 
 var source_id = 0
 var water_atlas = Vector2i(1, 2)  # różne kafelki wody
@@ -16,15 +16,20 @@ var neighbour_cells_even_columns = [Vector2i(1,0), Vector2i(1,-1), Vector2i(0,-1
 var neighbour_cell_odd_columns = [Vector2i(1,1), Vector2i(1,0), Vector2i(0,-1), Vector2i(-1,1), Vector2i(0,1), Vector2i(-1,0)]
 const MIN_DIST_BETWEEN_STRUCTURES = 4
 
+signal world_generated
+
 var width : int = 100
 var height : int = 100
 var noise_arr = []
-func _ready():
+
+	
+func run():
 	randomize()
 	noise = noise_height_text.noise
 	noise.seed = Client.map_seed;
 	generate_world()
 	place_structures()
+	emit_signal("world_generated")
 
 func generate_world():
 	for x in range(-width/2,width/2):
