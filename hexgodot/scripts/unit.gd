@@ -4,7 +4,7 @@ extends Node2D
 
 var count = 0
 var player_id = 0
-
+var unit_id = 0
 
 func get_count() -> int:
 	return count
@@ -24,3 +24,6 @@ func get_player_id() -> int:
 
 func set_player_id(value: int):
 	player_id = value
+
+func set_id(value: int):
+	unit_id = value

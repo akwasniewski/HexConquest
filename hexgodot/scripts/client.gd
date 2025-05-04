@@ -7,6 +7,7 @@ var player_id := -1
 var game_id := -1
 var map_seed := 2137
 var active_players: Array = []
+const DEFAULT_COUNT_OF_UNIT = 5
 signal players_updated
 func _ready():
 	set_process(true)
@@ -91,6 +92,19 @@ func handle_message(raw: String):
 		"StartGame":
 			map_seed = payload.get("map_seed", -1)
 			get_tree().change_scene_to_file("res://scenes/game.tscn")
+		"AddUnit":
+			var units_layer =  get_tree().get_root().get_node("game/UnitsLayer")
+			var pid = payload.get("player_id")
+			var unit_id = payload.get("unit_id")
+			var position_x = payload.get("position_x")
+			var position_y = payload.get("position_y")
+			units_layer.add_unit_at(pid, unit_id, Vector2i(position_x, position_y), DEFAULT_COUNT_OF_UNIT)
+		"MoveUnit":
+			var units_layer =  get_tree().get_root().get_node("game/UnitsLayer")
+			var unit_id = payload.get("unit_id")
+			var position_x = payload.get("position_x")
+			var position_y = payload.get("position_y")
+			units_layer.move_unit(unit_id, Vector2i(position_x, position_y))
 		"Error":
 			var message = payload.get("message", "")
 			print("Server error: %s" % message)
@@ -132,5 +146,26 @@ func start_game():
 	print("starting game")
 	var message = {
 		"type": "StartGame",
+	}
+	send(message)
+
+func add_unit(position: Vector2i):
+	var message = {
+		"type": "AddUnit",
+		"payload": {
+			"position_x": position.x,
+			"position_y": position.y
+		}
+	}
+	send(message)
+
+func move_unit(unit_id: int, position: Vector2i):
+	var message = {
+		"type": "MoveUnit",
+		"payload": {
+			"unit_id": unit_id,
+			"position_x": position.x,
+			"position_y": position.y
+		}
 	}
 	send(message)

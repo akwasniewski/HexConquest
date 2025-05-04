@@ -93,22 +93,26 @@ impl Game{
         player.send_message(&message).await.unwrap()
     }
     pub async fn add_unit(&mut self, player_id: u32, position: (i32, i32)){
-        let players = self.players.lock().await;
-        let player: Arc<Mutex<Player>>=players[player_id as usize].clone();
-        let player =player.lock().await;
-        let mut units = player.units.lock().await;
         let unit_id = self.unit_count;
-        self.unit_count+=1;
-        units.insert(unit_id, Arc::new(Mutex::new(Unit::new(position))));
+        {
+            let players = self.players.lock().await;
+            let player: Arc<Mutex<Player>>=players[player_id as usize].clone();
+            let player =player.lock().await;
+            let mut units = player.units.lock().await;
+            self.unit_count+=1;
+            units.insert(unit_id, Arc::new(Mutex::new(Unit::new(position))));
+        }
         self.broadcast(ServerMessage::AddUnit{player_id, unit_id, position_x: position.0, position_y: position.1}).await;
     }
     pub async fn move_unit(&self, player_id: u32, unit_id: u32, position: (i32, i32)){
-        let players = self.players.lock().await;
-        let player: Arc<Mutex<Player>>=players[player_id as usize].clone();
-        let player =player.lock().await;
-        let units = player.units.lock().await;
-        let mut unit = units.get(&unit_id).expect("player does not have this unit").lock().await;
-        unit.position = position;
+        {
+            let players = self.players.lock().await;
+            let player: Arc<Mutex<Player>>=players[player_id as usize].clone();
+            let player =player.lock().await;
+            let units = player.units.lock().await;
+            let mut unit = units.get(&unit_id).expect("player does not have this unit").lock().await;
+            unit.position = position;
+        }
         self.broadcast(ServerMessage::MoveUnit{unit_id, position_x: position.0, position_y: position.1}).await;
     }
 }

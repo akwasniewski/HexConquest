@@ -30,7 +30,7 @@ func _unhandled_input(event):
 			#print("can move")
 			var dest_unit = units_layer.get_unit_at(tile_pos)
 			if dest_unit == null:
-				units_layer.move_unit(selected_unit, tile_pos)
+				Client.move_unit(selected_unit.unit_id, tile_pos)
 			else:
 				if selected_unit.get_player_id() == dest_unit.get_player_id():
 					dest_unit.add_count_from(selected_unit)

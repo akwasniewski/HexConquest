@@ -163,7 +163,8 @@ async fn process_message(msg: Message, player: Arc<Mutex<Player>>, games: Arc<Mu
                                     game = Some(new_game.clone());
                                     let game = game.clone().unwrap();
                                     let mut game = game.lock().await;
-                                    let player_id: u32 = game.add_player(player.clone()).await;
+                                    player_id = Some(game.add_player(player.clone()).await);
+                                    let player_id = player_id.unwrap();
                                     let mut player = player.lock().await;
                                     player.set_credentials(username.clone(), player_id);
                                     player.send_message(&ServerMessage::GameJoined { player_id, game_id }).await.expect("failed to send message");
@@ -192,6 +193,7 @@ async fn process_message(msg: Message, player: Arc<Mutex<Player>>, games: Arc<Mu
                             let mut game = game.lock().await;
                             let player_id = player_id.unwrap();
                             game.add_unit(player_id, (position_x, position_y)).await;
+                            println!("{who} added a unit at {position_x}, {position_y}");
                         }
                         ClientMessage::MoveUnit { unit_id, position_x, position_y } => {
                             let game = game.clone().unwrap();

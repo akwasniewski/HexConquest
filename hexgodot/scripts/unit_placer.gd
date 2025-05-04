@@ -6,7 +6,6 @@ extends Node2D
 signal placement_finished
 
 const TOTAL_UNITS_TO_PLACE = 5
-const DEFAULT_COUNT_OF_UNIT = 5
 var units_to_place = TOTAL_UNITS_TO_PLACE
 var input_enabled = false
 
@@ -36,8 +35,10 @@ func unit_can_be_placed_at(tile_pos: Vector2i) -> bool:
 	return (tile_is_on_map && tile_is_free)
 
 func place_unit(tile_pos: Vector2i):
-	units_layer.add_unit_at(tile_pos, DEFAULT_COUNT_OF_UNIT)
-	units_to_place -= 1
+	print("unit placed")
+
+	Client.add_unit(tile_pos)
+	units_to_place-=1
 	if units_to_place <= 0:
 		stop_placing_units()
 
