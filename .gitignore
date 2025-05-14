@@ -1,5 +1,7 @@
+
 hexconquestserver/target
 .DS_Store
+akwasniewskkieu_key.pem
 # Godot 4+ specific ignores
 .godot/
 .idea

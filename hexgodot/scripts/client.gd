@@ -1,5 +1,6 @@
 extends Node
-
+const USE_LOCAL := false
+var ws_url := ""
 var ws := WebSocketPeer.new()
 var is_connected := false
 var pending_message: Dictionary = {}
@@ -10,6 +11,10 @@ var active_players: Array = []
 const DEFAULT_COUNT_OF_UNIT = 5
 signal players_updated
 func _ready():
+	if USE_LOCAL:
+		ws_url = "ws://localhost:7777/hexserver"
+	else:
+		ws_url = "wss://akwasniewski.eu/hexserver"
 	set_process(true)
 
 func _process(_delta):
@@ -40,7 +45,7 @@ func connect_to_server(message_to_send: Dictionary):
 		send(message_to_send)
 	else:
 		# If not connected, save the message to send later
-		var err = ws.connect_to_url("ws://localhost:7777/ws")
+		var err = ws.connect_to_url(ws_url)
 		if err != OK:
 			push_error("Failed to connect to server")
 		else:
