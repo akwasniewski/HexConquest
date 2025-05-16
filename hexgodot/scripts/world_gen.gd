@@ -24,7 +24,7 @@ var noise_arr = []
 
 	
 func run():
-	randomize()
+	#randomize()
 	noise = noise_height_text.noise
 	noise.seed = Client.map_seed;
 	generate_world()
@@ -69,10 +69,8 @@ func is_near_water(pos: Vector2i) -> bool:
 
 	
 func place_structures():
-	var cities_to_place = 200
-	var ports_to_place = 125
-	
-	while cities_to_place > 0:
+	#place cities
+	for i in range(height*width/2):
 		var x = randi_range(-width/2, width/2)
 		var y = randi_range(-height/2, height/2)
 		var pos = Vector2i(x, y)
@@ -82,9 +80,8 @@ func place_structures():
 		if land_tiles.has(tile) and not is_near_water(pos) and not is_near_structure(pos, placed_cities, MIN_DIST_BETWEEN_STRUCTURES):
 			tile_map.set_cell(pos, source_id, city_tile)
 			placed_cities.append(pos)
-			cities_to_place -= 1
-
-	while ports_to_place > 0:
+			
+	for i in range(height*width):
 		var x = randi_range(-width/2, width/2)
 		var y = randi_range(-height/2, height/2)
 		var pos = Vector2i(x, y)
@@ -94,7 +91,7 @@ func place_structures():
 		if land_tiles.has(tile) and is_near_water(pos) and not is_near_structure(pos, placed_ports + placed_cities, MIN_DIST_BETWEEN_STRUCTURES):
 			tile_map.set_cell(pos, source_id, port_tile)
 			placed_ports.append(pos)
-			ports_to_place -= 1
+			
 
 			
 	print("highest ", noise_arr.max())

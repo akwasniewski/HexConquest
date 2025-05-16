@@ -46,6 +46,8 @@ func connect_to_server(message_to_send: Dictionary):
 	else:
 		# If not connected, save the message to send later
 		var err = ws.connect_to_url(ws_url)
+
+
 		if err != OK:
 			push_error("Failed to connect to server")
 		else:
