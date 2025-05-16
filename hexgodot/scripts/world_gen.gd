@@ -6,7 +6,7 @@ var noise : Noise
 
 var source_id = 0
 var water_atlas = Vector2i(1, 2)  # różne kafelki wody
-var land_tiles = [Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(3,0), Vector2i(4,0), Vector2i(0,1), Vector2i(0,2)]  # różne kafelki trawy
+var land_tiles = [Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(3,0), Vector2i(4,0), Vector2i(0,1), Vector2i(1,1), Vector2i(0,0)]  # różne kafelki trawy
 var dirt_tiles = [Vector2i(2, 1), Vector2i(3, 1), Vector2i(4, 1), Vector2i(0,2)]  # różne kafelki ziemi
 var city_tile = Vector2i(2, 2)  # przykładowy kafelek miasta
 var port_tile = Vector2i(4, 2)  # przykładowy kafelek portu
@@ -21,12 +21,21 @@ signal world_generated
 var width : int = 100
 var height : int = 100
 var noise_arr = []
+var seed : int
 
+func pseudo_random(x: int, y: int, ) -> int:
+	var hash = int((x * 374761393 + y * 668265263 + seed * 982451653) & 0x7fffffff)
+	return hash % 2137
+	
+func pseudo_random_range(index: int, seed: int, min_val: int, max_val: int) -> int:
+	var range_size = max_val - min_val + 1
+	var hash = int((index * 374761393 + seed * 668265263) & 0x7fffffff)
+	return (hash % range_size) + min_val
 	
 func run():
-	#randomize()
 	noise = noise_height_text.noise
 	noise.seed = Client.map_seed;
+	seed = Client.map_seed;
 	generate_world()
 	place_structures()
 	emit_signal("world_generated")
@@ -37,13 +46,13 @@ func generate_world():
 			var noise_val = noise.get_noise_2d(x,y)
 			#print(noise_val)
 			noise_arr.append(noise_val)
-			if noise_val > -0.1:
-				var tile = land_tiles[randi()%land_tiles.size()]
+			if noise_val > 0:
+				var tile = land_tiles[pseudo_random(x,y)%land_tiles.size()]
 				tile_map.set_cell(Vector2i(x,y), source_id, tile)
 			elif noise_val <= -0.2:
 				tile_map.set_cell(Vector2i(x,y), source_id, water_atlas)
-			elif noise_val <= -0.1:
-				var tile = dirt_tiles[randi()%dirt_tiles.size()]
+			elif noise_val <= 0:
+				var tile = dirt_tiles[pseudo_random(y,x)%dirt_tiles.size()]
 				tile_map.set_cell(Vector2i(x,y), source_id, tile)
 				
 func is_near_structure(pos: Vector2i, structures: Array, min_dist: int) -> bool:
@@ -71,8 +80,8 @@ func is_near_water(pos: Vector2i) -> bool:
 func place_structures():
 	#place cities
 	for i in range(height*width/2):
-		var x = randi_range(-width/2, width/2)
-		var y = randi_range(-height/2, height/2)
+		var x = pseudo_random_range(i*27, seed, -width/2, width/2)
+		var y = pseudo_random_range(i*37, seed, -height/2, height/2)
 		var pos = Vector2i(x, y)
 		var tile = tile_map.get_cell_atlas_coords(pos)
 
@@ -81,9 +90,9 @@ func place_structures():
 			tile_map.set_cell(pos, source_id, city_tile)
 			placed_cities.append(pos)
 			
-	for i in range(height*width):
-		var x = randi_range(-width/2, width/2)
-		var y = randi_range(-height/2, height/2)
+	for i in range(1000*height*width):
+		var x = pseudo_random_range(i*57, seed, -width/2, width/2)
+		var y = pseudo_random_range(i*49, seed, -height/2, height/2)
 		var pos = Vector2i(x, y)
 		var tile = tile_map.get_cell_atlas_coords(pos)
 
