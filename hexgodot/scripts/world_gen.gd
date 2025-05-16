@@ -12,6 +12,7 @@ var city_tile = Vector2i(2, 2)  # przykładowy kafelek miasta
 var port_tile = Vector2i(4, 2)  # przykładowy kafelek portu
 var placed_cities = []
 var placed_ports = []
+var neighbour_cells = [Vector2i(-1,-1),Vector2i(0,-1),Vector2i(1,0),Vector2i(0,1),Vector2i(-1,1),Vector2i(-1,0)]
 var neighbour_cells_even_columns = [Vector2i(1,0), Vector2i(1,-1), Vector2i(0,-1), Vector2i(-1,0), Vector2i(-1,-1), Vector2i(0,1)]
 var neighbour_cell_odd_columns = [Vector2i(1,1), Vector2i(1,0), Vector2i(0,-1), Vector2i(-1,1), Vector2i(0,1), Vector2i(-1,0)]
 const MIN_DIST_BETWEEN_STRUCTURES = 4
@@ -22,6 +23,7 @@ var width : int = 100
 var height : int = 100
 var noise_arr = []
 var seed : int
+var dirt_tiles_coords = []
 
 func pseudo_random(x: int, y: int, ) -> int:
 	var hash = int((x * 374761393 + y * 668265263 + seed * 982451653) & 0x7fffffff)
@@ -54,6 +56,7 @@ func generate_world():
 			elif noise_val <= 0:
 				var tile = dirt_tiles[pseudo_random(y,x)%dirt_tiles.size()]
 				tile_map.set_cell(Vector2i(x,y), source_id, tile)
+				dirt_tiles_coords.append(Vector2i(x, y))
 				
 func is_near_structure(pos: Vector2i, structures: Array, min_dist: int) -> bool:
 	for other in structures:
@@ -63,12 +66,14 @@ func is_near_structure(pos: Vector2i, structures: Array, min_dist: int) -> bool:
 	
 func is_near_water(pos: Vector2i) -> bool:
 	# Sprawdzamy wszystkie sąsiednie kafelki w promieniu 1 wokół
-	var neighbour_cells = neighbour_cells_even_columns
-	if pos.y %2 == 0:
-		neighbour_cells = neighbour_cell_odd_columns
+	#var neighbour_cells = neighbour_cells_even_columns
+	#if pos.y %2 == 0:
+		#neighbour_cells = neighbour_cell_odd_columns
 		
 	for neighbour in neighbour_cells:
 		var n = pos + neighbour
+		print(pos);
+		print(n);
 		# Sprawdzamy, czy sąsiedni kafelek jest wodą
 		var tile = tile_map.get_cell_atlas_coords(n)
 		if tile == water_atlas:
@@ -90,14 +95,12 @@ func place_structures():
 			tile_map.set_cell(pos, source_id, city_tile)
 			placed_cities.append(pos)
 			
-	for i in range(1000*height*width):
-		var x = pseudo_random_range(i*57, seed, -width/2, width/2)
-		var y = pseudo_random_range(i*49, seed, -height/2, height/2)
-		var pos = Vector2i(x, y)
+	for i in range(1000):
+		var pos = dirt_tiles_coords[pseudo_random(i*19, i*37)%dirt_tiles_coords.size()]
 		var tile = tile_map.get_cell_atlas_coords(pos)
-
-		# Port na lądzie obok wody, nie za blisko innych portów i miast
-		if land_tiles.has(tile) and is_near_water(pos) and not is_near_structure(pos, placed_ports + placed_cities, MIN_DIST_BETWEEN_STRUCTURES):
+		
+		## Port na lądzie obok wody, nie za blisko innych portów i miast
+		if is_near_water(pos) and not is_near_structure(pos, placed_ports + placed_cities, MIN_DIST_BETWEEN_STRUCTURES):
 			tile_map.set_cell(pos, source_id, port_tile)
 			placed_ports.append(pos)
 			
