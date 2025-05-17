@@ -1,5 +1,5 @@
 extends Node
-const USE_LOCAL := true
+const USE_LOCAL := false
 var ws_url := ""
 var ws := WebSocketPeer.new()
 var is_connected := false
