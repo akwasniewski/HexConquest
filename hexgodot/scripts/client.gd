@@ -1,5 +1,5 @@
 extends Node
-const USE_LOCAL := false
+const USE_LOCAL := true
 var ws_url := ""
 var ws := WebSocketPeer.new()
 var is_connected := false
@@ -8,11 +8,11 @@ var player_id := -1
 var game_id := -1
 var map_seed := 2137
 var active_players: Array = []
-const DEFAULT_COUNT_OF_UNIT = 5
+const DEFAULT_COUNT_OF_UNIT = 10
 signal players_updated
 func _ready():
 	if USE_LOCAL:
-		ws_url = "ws://localhost:7777/hexserver"
+		ws_url = "ws://127.0.0.1:7777/ws"
 	else:
 		ws_url = "wss://akwasniewski.eu/hexserver"
 	set_process(true)
@@ -106,6 +106,7 @@ func handle_message(raw: String):
 			var position_y = payload.get("position_y")
 			units_layer.add_unit_at(pid, Vector2i(position_x, position_y), DEFAULT_COUNT_OF_UNIT)
 		"MoveUnit":
+			print("Move received")
 			var units_layer =  get_tree().get_root().get_node("game/UnitsLayer")
 			var from_position_x = payload.get("from_position_x")
 			var from_position_y = payload.get("from_position_y")
@@ -178,3 +179,8 @@ func move_unit(from_position: Vector2i, to_position: Vector2i):
 		}
 	}
 	send(message)
+
+func attack(from_position: Vector2i, to_position: Vector2i):
+	var message = {
+		"type": ""
+	}

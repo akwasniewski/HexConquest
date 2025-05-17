@@ -74,4 +74,16 @@ func move_unit(source: Vector2i, dest: Vector2i):
 			dest_unit.add_count_from(source_unit)
 			remove_unit(source_unit)
 		else:
-			pass #TODO
+			if source_unit.get_count() == dest_unit.get_count():
+				remove_unit(source_unit)
+				remove_unit(dest_unit)
+			else:
+				if source_unit.get_count() > dest_unit.get_count():
+					source_unit.add_count(-dest_unit.get_count())
+					remove_unit(dest_unit)
+					source_unit.set_position(tile_map.map_to_local(dest))
+					units_at_pos[dest] = source_unit
+				else:
+					dest_unit.add_count(-source_unit.get_count())
+					remove_unit(source_unit)
+				

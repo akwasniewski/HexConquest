@@ -5,7 +5,7 @@ extends Node2D
 
 signal placement_finished
 
-const TOTAL_UNITS_TO_PLACE = 5
+const TOTAL_UNITS_TO_PLACE = 3
 var units_to_place = TOTAL_UNITS_TO_PLACE
 var input_enabled = false
 

@@ -103,28 +103,91 @@ impl Game{
         }
         self.broadcast(ServerMessage::AddUnit{player_id, position_x: position.0, position_y: position.1}).await;
     }
-    pub async fn move_unit(&self, player_id: u32, from_position: (i32, i32), to_position: (i32, i32))-> Result<(), &str>{
-        {
-            let players = self.players.lock().await;
-            let player: Arc<Mutex<Player>> = players[player_id as usize].clone();
-            let player = player.lock().await;
-            let mut units = player.units.lock().await;
+    pub async fn move_unit(&self, player_id: u32, from_position: (i32, i32), to_position: (i32, i32)) -> Result<(), &str> {
+    {
+        println!("Player {player_id} is attempting to move unit from {:?} to {:?}", from_position, to_position);
 
-            let Some(unit_arc) = units.remove(&from_position) else {return Err("unit not found")};
-            let mut unit = unit_arc.lock().await;
-            unit.position = to_position;
+        let players = self.players.lock().await;
+        let player: Arc<Mutex<Player>> = players[player_id as usize].clone();
+        let player = player.lock().await;
+        let mut units = player.units.lock().await;
 
+        let Some(unit_arc) = units.remove(&from_position) else {
+            println!("Unit not found at position {:?}", from_position);
+            return Err("unit not found");
+        };
+        let mut attack = false;
+
+        println!("Unit found. Preparing to move...");
+        let unit_clone = unit_arc.clone();
+        let mut unit = unit_clone.lock().await;
+        unit.position = to_position;
+        drop(unit); // Drop early to allow reuse
+
+        // Check for enemy unit
+        for (id, other_player_arc) in players.iter().enumerate() { // DO NOT LOOK at this function
+            if id as u32 == player_id {
+                continue;
+            }
+            
+            let other_player = other_player_arc.lock().await;
+            let mut other_units = other_player.units.lock().await;
+
+            if let Some(enemy_arc) = other_units.get(&to_position) {
+                println!("Enemy unit detected at {:?}", to_position);
+                let mut enemy_unit = enemy_arc.lock().await;
+                let mut unit = unit_clone.lock().await;
+
+                println!("FIGHT: Attacker count: {}, Defender count: {}", unit.count, enemy_unit.count);
+
+                if unit.count > enemy_unit.count {
+                    println!("Attacker wins. Remaining count: {}", unit.count - enemy_unit.count);
+                    unit.count -= enemy_unit.count;
+                    enemy_unit.count = 0;
+                    drop(enemy_unit);
+                    other_units.remove(&to_position);
+
+                    // Move attacker in
+                    drop(unit);
+                    units.insert(to_position, unit_arc.clone());  // Insert once here
+                } else {
+                    println!("Defender survives or tie. Remaining defender count: {}", enemy_unit.count - unit.count);
+                    enemy_unit.count -= unit.count;
+                    unit.count = 0;
+                    // Attacker dies, no insert
+                }
+                attack = true;
+                break; // Exit loop after handling the first enemy unit
+            }
+        }
+
+        // No enemy found – regular move or merge
+       if !attack {
+            let mut unit = unit_clone.lock().await;
             if let Some(existing_arc) = units.get(&to_position) {
+                println!("Merging units at {:?}", to_position);
                 let mut existing_unit = existing_arc.lock().await;
                 existing_unit.count += unit.count;
             } else {
+                println!("Moving unit to empty position {:?}", to_position);
                 drop(unit);
-                units.insert(to_position, unit_arc);
-            }       
+                units.insert(to_position, unit_arc);  // Only insert here if no attack happened
+            }
         }
-        self.broadcast(ServerMessage::MoveUnit{from_position_x: from_position.0, from_position_y: from_position.1, to_position_x: to_position.0, to_position_y: to_position.1}).await;
-        Ok(()) 
-    }
+
+        }
+     
+    self.broadcast(ServerMessage::MoveUnit {
+        from_position_x: from_position.0,
+        from_position_y: from_position.1,
+        to_position_x: to_position.0,
+        to_position_y: to_position.1,
+    }).await;
+
+    println!("Move completed and broadcasted successfully.");
+    Ok(())
+}
+
 }
 impl Unit{
     pub fn new(position: (i32, i32), count: u32) -> Self{
