@@ -95,6 +95,7 @@ func place_structures():
 			tile_info[pos].set_port(true)
 			
 
-			
+	Client.send_cities(placed_cities)	
+	Client.send_ports(placed_ports)	
 	print("highest ", noise_arr.max())
 	print("lowest ", noise_arr.min())

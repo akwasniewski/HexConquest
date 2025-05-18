@@ -8,7 +8,6 @@ var player_id := -1
 var game_id := -1
 var map_seed := 2137
 var active_players: Array = []
-const DEFAULT_COUNT_OF_UNIT = 10
 signal players_updated
 func _ready():
 	if USE_LOCAL:
@@ -104,7 +103,8 @@ func handle_message(raw: String):
 			var pid = payload.get("player_id")
 			var position_x = payload.get("position_x")
 			var position_y = payload.get("position_y")
-			units_layer.add_unit_at(pid, Vector2i(position_x, position_y), DEFAULT_COUNT_OF_UNIT)
+			var count = payload.get("count")
+			units_layer.add_unit_at(pid, Vector2i(position_x, position_y), count)
 		"MoveUnit":
 			print("Move received")
 			var units_layer =  get_tree().get_root().get_node("game/UnitsLayer")
@@ -163,7 +163,6 @@ func add_unit(position: Vector2i):
 		"payload": {
 			"position_x": position.x,
 			"position_y": position.y,
-			"count": DEFAULT_COUNT_OF_UNIT
 		}
 	}
 	send(message)
@@ -184,3 +183,28 @@ func attack(from_position: Vector2i, to_position: Vector2i):
 	var message = {
 		"type": ""
 	}
+func send_cities(cities: Array):
+	var cities_payload = cities.map(func(v):
+		return {"x": v.x, "y": v.y}
+	)
+	if player_id==0:
+		var message = {
+			"type": "SendCities",
+			"payload": {
+				"cities": cities_payload
+			}
+		}
+		send(message)
+
+func send_ports(ports: Array):
+	var ports_payload = ports.map(func(v):
+		return {"x": v.x, "y": v.y}
+	)
+	if player_id==0:
+		var message = {
+			"type": "SendPorts",
+			"payload": {
+				"ports": ports_payload
+			}
+		}
+		send(message)

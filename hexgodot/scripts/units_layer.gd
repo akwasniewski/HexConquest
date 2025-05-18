@@ -7,16 +7,6 @@ var units_at_pos := {}
 @onready var unit_scene = preload("res://scenes/unit_display.tscn")
 @onready var tile_map = get_node("../TileMapLayer")
 
-
-func add_unit_at(player_id:int, tile_pos: Vector2i, count: int):
-	print("player added")
-	var unit = unit_scene.instantiate()
-	unit.set_position(tile_map.map_to_local(tile_pos))
-	unit.set_player_id(player_id)
-	add_child(unit)
-	unit.set_count(count)
-	units_at_pos[tile_pos] = unit
-
 func get_unit_at(tile_pos: Vector2i) -> Node2D:
 	return units_at_pos.get(tile_pos, null)
 
@@ -60,6 +50,17 @@ func can_move_unit(unit, dest: Vector2i):
 	var dest_is_on_map = true #TODO
 	var dist_ok = hex_dist(source, dest) <= UNIT_RANGE
 	return (source_is_on_map and dest_is_on_map and dist_ok)
+func add_unit_at(player_id:int, tile_pos: Vector2i, count: int):
+	var dest_unit = get_unit_at(tile_pos)
+	if dest_unit == null:
+		var unit = unit_scene.instantiate()
+		unit.set_position(tile_map.map_to_local(tile_pos))
+		unit.set_player_id(player_id)
+		add_child(unit)
+		unit.set_count(count)
+		units_at_pos[tile_pos] = unit
+	else:
+		dest_unit.add_count(count)
 
 func move_unit(source: Vector2i, dest: Vector2i):
 	var source_unit = get_unit_at(source)

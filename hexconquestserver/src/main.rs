@@ -29,7 +29,7 @@ use logic::{Game,Player};
 
 mod messages; 
 use messages::{ClientMessage, ServerMessage};
-
+const DEFAULT_COUNT_OF_UNIT: u32 = 10;
 #[tokio::main]
 async fn main() {
     let cors = CorsLayer::new()
@@ -170,16 +170,18 @@ async fn process_message(msg: Message, player: Arc<Mutex<Player>>, games: Arc<Mu
                         }
                         ClientMessage::StartGame => {
                             let game = game.clone().unwrap();
-                            let game = game.lock().await;
+                            let game_mutex = game.clone();
+                            let game_mutex = game_mutex.lock().await;
                             let map_seed: u32 = rng().random();
-                            game.broadcast(ServerMessage::StartGame { map_seed }).await;
-                            println!("Game {:?} started", game.game_id);
+                            game_mutex.broadcast(ServerMessage::StartGame { map_seed }).await;
+                            game_mutex.start_tick(game).await;
+                            println!("Game {:?} started", game_mutex.game_id);
                         }                        
-                        ClientMessage::AddUnit {position_x, position_y, count} => {
+                        ClientMessage::AddUnit {position_x, position_y} => {
                             let game = game.clone().unwrap();
                             let mut game = game.lock().await;
                             let player_id = player_id.unwrap();
-                            game.add_unit(player_id, (position_x, position_y), count).await;
+                            game.add_unit(player_id, (position_x, position_y), DEFAULT_COUNT_OF_UNIT).await;
                             println!("{who} added a unit at {position_x}, {position_y}");
                         }
                         ClientMessage::MoveUnit {from_position_x, from_position_y, to_position_x, to_position_y } => {
@@ -192,6 +194,16 @@ async fn process_message(msg: Message, player: Arc<Mutex<Player>>, games: Arc<Mu
                                     eprintln!("Error: {:?}", err);
                                 }
                             } 
+                        }
+                        ClientMessage::SendCities {cities}=>{
+                            let game = game.clone().unwrap();
+                            let mut game = game.lock().await;
+                            game.set_cities(cities).await;
+                        }
+                        ClientMessage::SendPorts {ports}=>{
+                            let game = game.clone().unwrap();
+                            let mut game = game.lock().await;
+                            game.set_ports(ports).await;
                         }
                     }
                 }
