@@ -174,6 +174,7 @@ impl Game {
 
                         // Move attacker in
                         drop(unit);
+                        self.claim_city(to_position, player_id).await;
                         units.insert(to_position, unit_arc.clone());  // Insert once here
                     } else {
                         println!("Defender survives or tie. Remaining defender count: {}", enemy_unit.count - unit.count);
