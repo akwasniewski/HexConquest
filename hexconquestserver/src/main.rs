@@ -1,6 +1,6 @@
 use axum::{
     body::Bytes,
-    extract::ws::{Message, Utf8Bytes, WebSocket, WebSocketUpgrade},
+    extract::ws::{Message, WebSocket, WebSocketUpgrade},
     response::IntoResponse,
     routing::any,
     Router,
@@ -17,13 +17,8 @@ use tower_http::{
 };
 
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
-//allows to extract the IP of connecting user
 use axum::extract::connect_info::ConnectInfo;
-use axum::extract::ws::CloseFrame;
-
-//allows to split the websocket stream into separate TX and RX branches
-use futures::{sink::SinkExt, stream::StreamExt};
+use futures::stream::StreamExt;
 
 use tokio::sync::Mutex;
 use std::sync::Arc;
@@ -37,11 +32,10 @@ use messages::{ClientMessage, ServerMessage};
 
 #[tokio::main]
 async fn main() {
-    // Configure CORS
     let cors = CorsLayer::new()
-        .allow_origin(Any) // Allows all origins (use .allow_origin("http://your-godot-game.com") for specific domains)
-        .allow_methods(Any) // Allows all methods (GET, POST, etc.)
-        .allow_headers(Any); // Allows all headers
+        .allow_origin(Any) 
+        .allow_methods(Any) 
+        .allow_headers(Any); 
     let games:Arc<Mutex<HashMap<u32, Arc<Mutex<Game>>>>> = Arc::new(Mutex::new(HashMap::new()));
     tracing_subscriber::registry()
         .with(
@@ -54,17 +48,14 @@ async fn main() {
 
     let assets_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
 
-    // build our application with some routes
     let app = Router::new()
         .fallback_service(ServeDir::new(assets_dir).append_index_html_on_directories(true))
         .route("/ws", any(|ws, user_agent, addr| {ws_handler(ws, user_agent, addr, games)}))
-        // logging so we can see what's going on
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(DefaultMakeSpan::default().include_headers(true)),
         ).layer(cors);
 
-    // run it with hyper
     let listener = tokio::net::TcpListener::bind("127.0.0.1:7777")
         .await
         .unwrap();
@@ -88,14 +79,10 @@ async fn ws_handler(
         String::from("Unknown browser")
     };
     println!("`{user_agent}` at {addr} connected.");
-    // finalize the upgrade process by returning upgrade callback.
-    // we can customize the callback by sending additional info such as address.
     ws.on_upgrade(move |socket| handle_socket(socket, addr, games))
 }
 
-/// Actual websocket statemachine (one will be spawned per connection)
 async fn handle_socket(mut socket: WebSocket, who: SocketAddr, games: Arc<Mutex<HashMap<u32, Arc<Mutex<Game>>>>>) {
-    // send a ping (unsupported by some browsers) just to kick things off and get a response
     if socket
         .send(Message::Ping(Bytes::from_static(&[1, 2, 3])))
         .await
