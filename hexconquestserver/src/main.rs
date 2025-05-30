@@ -126,20 +126,21 @@ async fn process_message(msg: Message, player: Arc<Mutex<Player>>, games: Arc<Mu
                     match client_msg {
                         ClientMessage::CreateGame { username } => {
                             let game_id: u32 = rng().random_range(0..1000);
-                            let mut games = games.lock().await;
-                            games.insert(game_id, Arc::new(Mutex::new(Game::new(game_id))));
-                            game= Some(games[&game_id].clone());
+                            let mut games_mutex = games.lock().await;
+                            games_mutex.insert(game_id, Arc::new(Mutex::new(Game::new(game_id))));
+                            game= Some(games_mutex[&game_id].clone());
                             let game=game.clone().unwrap();
-                            drop(games);
-                            let mut game = game.lock().await;
-                            player_id = Some(game.add_player(player.clone()).await);
+                            let game_clone = game.clone();
+                            drop(games_mutex);
+                            let mut game_mutex = game_clone.lock().await; 
+                            player_id = Some(game_mutex.add_player(player.clone()).await);
                             let player_id = player_id.unwrap();
                             let mut player = player.lock().await;
                             player.set_credentials(username.clone(), player_id);
                             player.send_message(&ServerMessage::GameCreated { player_id, game_id }).await.expect("failed to send message");
                             drop(player);
-                            game.broadcast(ServerMessage::PlayerJoined { player_id, username: username.clone() }).await;
-                            drop(game);
+                            game_mutex.broadcast(ServerMessage::PlayerJoined { player_id, username: username.clone() }).await;
+                            game_mutex.start_tick(game, games.clone()).await;
 
                             println!("Player {username} created a game with id {game_id}")
                         }
@@ -174,7 +175,6 @@ async fn process_message(msg: Message, player: Arc<Mutex<Player>>, games: Arc<Mu
                             let game_mutex = game_mutex.lock().await;
                             let map_seed: u32 = rng().random();
                             game_mutex.broadcast(ServerMessage::StartGame { map_seed }).await;
-                            game_mutex.start_tick(game).await;
                             println!("Game {:?} started", game_mutex.game_id);
                         }                        
                         ClientMessage::AddUnit {position_x, position_y} => {

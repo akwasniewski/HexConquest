@@ -24,6 +24,7 @@ pub enum ServerMessage {
     StartGame{map_seed: u32},
     AddUnit{player_id: u32, position_x: i32, position_y: i32, count: u32},
     MoveUnit{from_position_x: i32, from_position_y: i32, to_position_x: i32, to_position_y: i32},
+    Ping{},
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PlayerInfo {

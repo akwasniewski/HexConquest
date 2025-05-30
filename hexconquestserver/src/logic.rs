@@ -4,7 +4,7 @@ use axum::extract::ws::{Message, WebSocket};
 use futures_util::SinkExt;
 use futures_util::stream::SplitSink;
 use tokio::sync::{Mutex,watch};
-use tokio::time::{Duration};
+use tokio::time::Duration;
 use std::collections::HashMap;
 use crate::messages::{ServerMessage, PlayerInfo, Vector2i};
 const TICK_LENGTH: u64 = 2;
@@ -57,7 +57,7 @@ impl Player{
 impl Game {
     pub fn new(id: u32) -> Self {
         let (tick_stopper, _) = watch::channel(false);
-        Self { game_id: id, players: Arc::new(Mutex::new(Vec::new())), unit_count: 0, cities: HashMap::new(), ports: HashMap::new(), tick_stopper }
+        Self { game_id: id, players: Arc::new(Mutex::new(Vec::new())), unit_count: 0, cities: HashMap::new(), ports: HashMap::new(), tick_stopper}
     }
     pub async fn add_player(&mut self, player: Arc<Mutex<Player>>) -> u32 {
         let mut players = self.players.lock().await;
@@ -109,7 +109,13 @@ impl Game {
         let players = self.players.lock().await;
         let player: Arc<Mutex<Player>> = players[player_id as usize].clone();
         let mut player = player.lock().await;
-        player.send_message(&message).await.unwrap()
+        if player.connected {
+            if let Err(e) = player.send_message(&message).await {
+                drop(player);
+                eprintln!("failed to send message to {:?}: {}", player_id, e);
+                self.disconnect_player(player_id).await;
+            }
+        }
     }
     pub async fn add_unit(&mut self, player_id: u32, position: (i32, i32), count: u32) {
         {
@@ -237,18 +243,24 @@ impl Game {
             None => {}
         }
     }
-    pub async fn start_tick(&self, game_mutex: Arc<Mutex<Game>>) {
+    pub async fn start_tick(&self, game_mutex: Arc<Mutex<Game>>,
+        games_mutex: Arc<Mutex<HashMap<u32, Arc<Mutex<Game>>>>> ) {
         let mut shutdown_rx = self.tick_stopper.subscribe();
+        let game_id = self.game_id;
         tokio::spawn(async move {
             loop {
                 tokio::select! {
                     _ = tokio::time::sleep(Duration::from_secs(TICK_LENGTH)) => {
                         let mut game = game_mutex.lock().await;
-                        game.tick().await;
+                        if game.tick().await{
+                            let mut games = games_mutex.lock().await;
+                            games.remove(&game_id);
+                            drop(games);
+                        }
                     }
                     _ = shutdown_rx.changed() => {
                         if *shutdown_rx.borrow() {
-                            println!("Game {} background loop stopped", game_mutex.lock().await.game_id);
+                            println!("Game {} ended", game_mutex.lock().await.game_id);
                             break;
                         }
                     }
@@ -259,9 +271,27 @@ impl Game {
     pub async fn stop_tick(&self) {
         let _ = self.tick_stopper.send(true);
     }
-    pub async fn tick(&mut self) {
-        println!("TICK");
-        for city in self.cities .clone(){
+    pub async fn tick(&mut self) -> bool{
+        let mut active_players = 0;
+        let players = self.players.lock().await;
+        for player in players.clone(){
+            //if ping is false it will disconnect the player, game ends if all players are disconnected
+            let mut player = player.lock().await;
+            match player.send_message(&ServerMessage::Ping{}).await{
+                Ok(_) => {
+                    active_players+=1;
+                }
+                _ => {
+                    player.disconnect();
+                }
+            }
+         }
+        if active_players==0{
+            self.stop_tick().await;
+            return true;    
+        }
+        drop(players);
+        for city in self.cities.clone(){
             let city_mutex = city.1.lock().await;
             match city_mutex.owner_id {
                 Some(pid) => {
@@ -270,8 +300,10 @@ impl Game {
                 _ => {}
             }
         }
+        return false;
     }
 }
+
 impl Unit {
     pub fn new(position: (i32, i32), count: u32) -> Self {
         Self { position, count }
