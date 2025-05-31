@@ -63,6 +63,10 @@ func add_unit_at(player_id:int, tile_pos: Vector2i, count: int):
 		dest_unit.add_count(count)
 
 func move_unit(source: Vector2i, dest: Vector2i):
+	
+	if source == dest:
+		return
+	
 	var source_unit = get_unit_at(source)
 	var dest_unit = get_unit_at(dest)
 	if dest_unit == null:

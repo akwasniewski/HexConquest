@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://bxwe08iuu1slj"]
+[gd_scene load_steps=14 format=3 uid="uid://bxwe08iuu1slj"]
 
 [ext_resource type="Script" uid="uid://d4afvx70eakcm" path="res://scripts/world_gen.gd" id="1_lnu2h"]
 [ext_resource type="Texture2D" uid="uid://bpu0ujtpaq80h" path="res://assets/tiles/tile_basic.png" id="2_lnu2h"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" uid="uid://dj642meauwcsl" path="res://scripts/unit_placer.gd" id="7_gee14"]
 [ext_resource type="Script" uid="uid://cyun1sokappos" path="res://scripts/gameplay.gd" id="8_0tnpc"]
 [ext_resource type="PackedScene" uid="uid://cjebyc2wmgrtp" path="res://scenes/unit_display.tscn" id="8_gee14"]
+[ext_resource type="Script" uid="uid://c6s2atlvr24wh" path="res://scenes/selected_tile.gd" id="9_0tnpc"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lbhrr"]
 texture = ExtResource("2_lnu2h")
@@ -69,3 +70,8 @@ visible = false
 
 [node name="Gameplay" type="Node2D" parent="."]
 script = ExtResource("8_0tnpc")
+
+[node name="SelectedTile" type="Node2D" parent="."]
+visible = false
+script = ExtResource("9_0tnpc")
+color = Color(0, 0, 0, 1)
