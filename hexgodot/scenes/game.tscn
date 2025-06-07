@@ -1,14 +1,15 @@
-[gd_scene load_steps=14 format=3 uid="uid://bxwe08iuu1slj"]
+[gd_scene load_steps=15 format=3 uid="uid://bxwe08iuu1slj"]
 
 [ext_resource type="Script" uid="uid://d4afvx70eakcm" path="res://scripts/world_gen.gd" id="1_lnu2h"]
 [ext_resource type="Texture2D" uid="uid://bpu0ujtpaq80h" path="res://assets/tiles/tile_basic.png" id="2_lnu2h"]
+[ext_resource type="Script" uid="uid://ywu1shakjla" path="res://scripts/map.gd" id="2_vtaks"]
 [ext_resource type="Script" uid="uid://bns07cl6vk23t" path="res://scenes/camera_2d.gd" id="3_iywne"]
 [ext_resource type="Script" uid="uid://bjuvgun563a6n" path="res://scripts/game_controller.gd" id="6_u5sy4"]
 [ext_resource type="Script" uid="uid://csug5g46mruop" path="res://scripts/units_layer.gd" id="7_0tnpc"]
 [ext_resource type="Script" uid="uid://dj642meauwcsl" path="res://scripts/unit_placer.gd" id="7_gee14"]
 [ext_resource type="Script" uid="uid://cyun1sokappos" path="res://scripts/gameplay.gd" id="8_0tnpc"]
 [ext_resource type="PackedScene" uid="uid://cjebyc2wmgrtp" path="res://scenes/unit_display.tscn" id="8_gee14"]
-[ext_resource type="Script" uid="uid://c6s2atlvr24wh" path="res://scenes/selected_tile.gd" id="9_0tnpc"]
+[ext_resource type="Script" uid="uid://buyqpn4e6ribu" path="res://scripts/player_influence.gd" id="9_0tnpc"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lbhrr"]
 texture = ExtResource("2_lnu2h")
@@ -48,6 +49,7 @@ noise = SubResource("FastNoiseLite_syqki")
 [node name="TileMapLayer" type="TileMapLayer" parent="."]
 position = Vector2(-1, -1)
 tile_set = SubResource("TileSet_iywne")
+script = ExtResource("2_vtaks")
 
 [node name="Camera2D" type="Camera2D" parent="TileMapLayer"]
 script = ExtResource("3_iywne")
@@ -73,5 +75,7 @@ script = ExtResource("8_0tnpc")
 
 [node name="SelectedTile" type="Node2D" parent="."]
 visible = false
+
+[node name="PlayerInfluence" type="Node2D" parent="."]
+z_index = 3
 script = ExtResource("9_0tnpc")
-color = Color(0, 0, 0, 1)
